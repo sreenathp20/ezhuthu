@@ -24,8 +24,11 @@ class Mongo:
     def insertUser(self, collection, data):
         collection_name = self.dbname[collection]
         find = collection_name.find().sort('_id', -1).limit(1)
-        c = find[0]['_id']
-        data['_id'] = c+1
+        if find:
+            c = find[0]['_id']
+            data['_id'] = c+1
+        else:
+            data['_id'] = 1
         collection_name.insert_many([data])
 
     def find_one(self, collection, username, password):
