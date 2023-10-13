@@ -14,7 +14,7 @@ class Mongo:
     def insert(self, collection, data):
         collection_name = self.dbname[collection]
         find = collection_name.find().sort('date', -1).limit(1)
-        if find:
+        if find[0]:
             c = find[0]['_id']
             data['_id'] = c+1
         else:
@@ -24,7 +24,7 @@ class Mongo:
     def insertUser(self, collection, data):
         collection_name = self.dbname[collection]
         find = collection_name.find().sort('_id', -1).limit(1)
-        if find:
+        if find[0]:
             c = find[0]['_id']
             data['_id'] = c+1
         else:
