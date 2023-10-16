@@ -21,6 +21,22 @@ class Mongo:
             data['_id'] = 1
         collection_name.insert_many([data])
 
+    def insertLottery(self, collection, data):
+        collection_name = self.dbname[collection]
+        find = list(collection_name.find().sort('_id', -1).limit(1))
+        if find:
+            c = find[0]['_id']
+            i = 1
+            for d in data:
+                d['_id'] = c+i
+                i += 1
+        else:
+            i = 1
+            for d in data:
+                d['_id'] = i
+                i += 1
+        collection_name.insert_many(data)
+
     def insertUser(self, collection, data):
         collection_name = self.dbname[collection]
         find = list(collection_name.find().sort('_id', -1).limit(1))

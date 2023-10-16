@@ -14,6 +14,8 @@ IST = pytz.timezone('Asia/Kolkata')
 
 SECRET_KEY = "python_jwt"
 
+COT = 15 # cut off time
+
 # json data to encode
 
 
@@ -52,6 +54,17 @@ def mapUsers(data, client_id):
     userDictList = list(map(lambda x: userDict, data))
     res = list(map(joinUser, data, userDictList))
     return res
+
+def getStartAndEnd(date):
+    if date.hour >= COT:
+        start = datetime.datetime(date.year,date.month,date.day,COT,0,0)
+        end_date = date + timedelta(days=1)
+        end = datetime.datetime(end_date.year,end_date.month,end_date.day,COT-1,59,59)
+    else:
+        start_date = date - timedelta(days=1)
+        start = datetime.datetime(start_date.year,start_date.month,start_date.day,COT,0,0)
+        end = datetime.datetime(date.year,date.month,date.day,COT-1,59,59)
+    return start, end
 
  
 class MyView(View):
@@ -107,14 +120,14 @@ class Lottery(View):
         client = decodeJwt(request)
         m = Mongo()
         date = datetime.datetime.now(IST)
-        if date.hour >= 15:
-            start = datetime.datetime(date.year,date.month,date.day,15,0,0)
+        if date.hour >= COT:
+            start = datetime.datetime(date.year,date.month,date.day,COT,0,0)
             end_date = date + timedelta(days=1)
-            end = datetime.datetime(end_date.year,end_date.month,end_date.day,14,59,59)
+            end = datetime.datetime(end_date.year,end_date.month,end_date.day,COT-1,59,59)
         else:
             start_date = date - timedelta(days=1)
-            start = datetime.datetime(start_date.year,start_date.month,start_date.day,15,0,0)
-            end = datetime.datetime(date.year,date.month,date.day,14,59,59)
+            start = datetime.datetime(start_date.year,start_date.month,start_date.day,COT,0,0)
+            end = datetime.datetime(date.year,date.month,date.day,COT-1,59,59)
         lottery = m.findLottery("lottery", client['userid'], start, end)
         lottery = jsonify(lottery)
         lottery = mapUsers(lottery, client['userid'])
@@ -125,12 +138,25 @@ class Lottery(View):
         client = decodeJwt(request)
         body_unicode = request.body.decode('utf-8')
         data = json.loads(body_unicode)['data']
-        data['client_id'] = client['userid']
         date = datetime.datetime.now(IST)
-        data['date'] = datetime.datetime(date.year,date.month,date.day,date.hour,date.minute,date.second)
+        iSet = data[0]['set']
+        numbers = []
+        for d in data:
+            int_number = int(d['number'])
+            d['number'] = int_number
+            numbers.append(int_number)
+            d['client_id'] = client['userid']        
+            d['date'] = datetime.datetime(date.year,date.month,date.day,date.hour,date.minute,date.second)
         m = Mongo()
-        m.insert("lottery", data)
+        if iSet == 'ABC':
+            self.validateSetCount(numbers, m, date)
+        m.insertLottery("lottery", data)
         return JsonResponse({"message": "Lettery created successfully", "success": True}, safe=False)
+    
+    def validateSetCount(self, numbers, m, date):
+        start, end = getStartAndEnd(date)
+        #m.getSetCount(start, end)
+        pass
     
 class LotteryByDate(View):
     def post(self, request):
@@ -141,9 +167,9 @@ class LotteryByDate(View):
         date = data['date']
         d  = datetime.datetime(int(date.split('/')[2]),int(date.split('/')[1]),int(date.split('/')[0]))
         start_date = d - timedelta(days=1)
-        start = datetime.datetime(start_date.year,start_date.month,start_date.day,15,0,0)
+        start = datetime.datetime(start_date.year,start_date.month,start_date.day,COT,0,0)
         end_date = d
-        end = datetime.datetime(end_date.year,end_date.month,end_date.day,14,59,59)
+        end = datetime.datetime(end_date.year,end_date.month,end_date.day,COT-1,59,59)
         lottery = m.findLottery("lottery", client['userid'], start, end)
         lottery = jsonify(lottery)
         lottery = mapUsers(lottery, client['userid'])
@@ -155,14 +181,7 @@ class TotalSale(View):
         client = decodeJwt(request)
         m = Mongo()
         date = datetime.datetime.now(IST)
-        if date.hour >= 15:
-            start = datetime.datetime(date.year,date.month,date.day,15,0,0)
-            end_date = date + timedelta(days=1)
-            end = datetime.datetime(end_date.year,end_date.month,end_date.day,14,59,59)
-        else:
-            start_date = date - timedelta(days=1)
-            start = datetime.datetime(start_date.year,start_date.month,start_date.day,15,0,0)
-            end = datetime.datetime(date.year,date.month,date.day,14,59,59)
+        start, end = getStartAndEnd(date)
         lottery = m.findLottery("lottery", client['userid'], start, end)
         lottery = jsonify(lottery)
         data = self.getTotalSale(lottery)
