@@ -219,5 +219,35 @@ class TotalSale(View):
             total += t
         res['total'] = total
         return res
+    
+class Price(View):
+    def get(self, request):
+        client = decodeJwt(request)
+        m = Mongo()
+        price = m.findPrice("price")
+        price = jsonify(price)
+        # <view logic>
+        return JsonResponse(price, safe=False)
+    
+    def post(self, request):
+        client = decodeJwt(request)
+        body_unicode = request.body.decode('utf-8')
+        data = json.loads(body_unicode)['data']
+        date = data['date']
+        d  = datetime.datetime(int(date.split('/')[2]),int(date.split('/')[1]),int(date.split('/')[0]))
+        m = Mongo()
+        val = self.validatePrice(d,m)
+        if len(val) > 0:
+            return JsonResponse({"message": "Price already exist for given date", "success": False}, safe=False)
+        data['date'] = d
+        m.insertPrice(data)
+        start, end = getStartAndEnd(d)
+        m.updatePrice(start, end, data)
+        return JsonResponse({"message": "Price created successfully", "success": True}, safe=False)
+    
+    def validatePrice(self, date,m):
+        res = m.getPrice(date)
+        return res
+
 
     
