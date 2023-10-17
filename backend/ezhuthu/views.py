@@ -120,14 +120,15 @@ class Lottery(View):
         client = decodeJwt(request)
         m = Mongo()
         date = datetime.datetime.now(IST)
-        if date.hour >= COT:
-            start = datetime.datetime(date.year,date.month,date.day,COT,0,0)
-            end_date = date + timedelta(days=1)
-            end = datetime.datetime(end_date.year,end_date.month,end_date.day,COT-1,59,59)
-        else:
-            start_date = date - timedelta(days=1)
-            start = datetime.datetime(start_date.year,start_date.month,start_date.day,COT,0,0)
-            end = datetime.datetime(date.year,date.month,date.day,COT-1,59,59)
+        # if date.hour >= COT:
+        #     start = datetime.datetime(date.year,date.month,date.day,COT,0,0)
+        #     end_date = date + timedelta(days=1)
+        #     end = datetime.datetime(end_date.year,end_date.month,end_date.day,COT-1,59,59)
+        # else:
+        #     start_date = date - timedelta(days=1)
+        #     start = datetime.datetime(start_date.year,start_date.month,start_date.day,COT,0,0)
+        #     end = datetime.datetime(date.year,date.month,date.day,COT-1,59,59)
+        start, end = getStartAndEnd(date)
         lottery = m.findLottery("lottery", client['userid'], start, end)
         lottery = jsonify(lottery)
         lottery = mapUsers(lottery, client['userid'])
@@ -141,21 +142,40 @@ class Lottery(View):
         date = datetime.datetime.now(IST)
         iSet = data[0]['set']
         numbers = []
+        numberDict = {}
         for d in data:
             int_number = int(d['number'])
             d['number'] = int_number
             numbers.append(int_number)
+            numberDict[int_number] = d['count']
             d['client_id'] = client['userid']        
             d['date'] = datetime.datetime(date.year,date.month,date.day,date.hour,date.minute,date.second)
         m = Mongo()
         if iSet == 'ABC':
-            self.validateSetCount(numbers, m, date)
+            val = self.validateSetCount(numbers, m, date, numberDict)
+            if len(val) > 0:
+                return JsonResponse({"message": str(val[0]['number'])+" count exceeds 200", "success": False}, safe=False)
         m.insertLottery("lottery", data)
         return JsonResponse({"message": "Lettery created successfully", "success": True}, safe=False)
     
-    def validateSetCount(self, numbers, m, date):
+    def validateSetCount(self, numbers, m, date, input):
         start, end = getStartAndEnd(date)
-        #m.getSetCount(start, end)
+        data = m.getSetCount(numbers, start, end)
+        numberDict = {}
+        #for n in numbers:
+        for d in data:
+            number = d['number']
+            if number in numberDict:
+                numberDict[number] += d['count']
+            else:
+                numberDict[number] = d['count']
+        res = []
+        for k in numberDict.keys():
+            cnt = numberDict[k]+input[k]
+            if cnt > 200:
+                res.append({"number": k, "count": cnt})
+
+        return res
         pass
     
 class LotteryByDate(View):

@@ -62,5 +62,11 @@ class Mongo:
     def findLottery(self, collection, user_id, start, end):
         collection_name = self.dbname[collection]
         return collection_name.find({"client_id": user_id, "date": {"$gte":start, "$lt": end}}).sort("date", -1)
+    
+    def getSetCount(self, numbers, start, end):
+        collection_name = self.dbname['lottery']
+        res = list(collection_name.find({"number": {"$in": numbers}, "date": {"$gte":start, "$lt": end}}).sort("date", -1))
+        return res
+
 
 
