@@ -87,7 +87,10 @@ class Mongo:
             collection_name.update_one(filter, newvalues) 
                 
                     
-
+    def deleteLottery(self, id):
+        collection_name = self.dbname['lottery']
+        myQuery ={'_id':id}
+        collection_name.delete_one(myQuery)
 
     def insertLottery(self, collection, data):
         collection_name = self.dbname[collection]

@@ -248,6 +248,21 @@ class Price(View):
     def validatePrice(self, date,m):
         res = m.getPrice(date)
         return res
+    
+class DeleteLottery(View):
+    def post(self, request):
+        client = decodeJwt(request)
+        body_unicode = request.body.decode('utf-8')
+        data = json.loads(body_unicode)['data']
+        date = data['date']
+        da = date.split('-')
+        #d  = datetime.datetime(int(da[0]),int(da[1]),int(da[2]))
+        d = datetime.datetime.now(IST)
+        if d.day >= int(da[2]) and d.hour >= COT:
+            return JsonResponse({"message": "Cannot delete this order", "success": False}, safe=False)
+        m = Mongo()
+        m.deleteLottery(data['id'])
+        return JsonResponse({"message": "Lottery deleteed successfully", "success": True}, safe=False)
 
 
     

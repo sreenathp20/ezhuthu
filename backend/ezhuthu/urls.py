@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.urls import path
-from ezhuthu.views import MyView, Users, Lottery, LotteryByDate, TotalSale, Price
+from ezhuthu.views import MyView, Users, Lottery, LotteryByDate, TotalSale, Price, DeleteLottery
 from django.urls import path, include
 
 app_name = 'ezhuthu'
@@ -12,5 +12,6 @@ urlpatterns = [
     path('lottery-bydate/', LotteryByDate.as_view()),
     path('total-sale/', TotalSale.as_view()),
     path('price/', Price.as_view()),
+    path('delete-lottery/', DeleteLottery.as_view()),
     
 ]
